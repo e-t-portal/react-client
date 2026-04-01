@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import "bootstrap/dist/css/bootstrap.min.css";
 
 type User = {
   id: number;
@@ -10,24 +11,37 @@ type User = {
 function UserList() {
   const [users, setUsers] = useState<User[]>([]);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // 🔹 GET utenti
+  // 🔹 Caricamento utenti
   useEffect(() => {
     fetch("http://localhost:8080/api/employees")
       .then((res) => res.json())
-      .then((data: User[]) => setUsers(data))
-      .catch((err) => console.error("Errore:", err));
+      .then((data: User[]) => {
+        setUsers(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Errore:", err);
+        setError("Impossibile caricare utenti");
+        setLoading(false);
+      });
   }, []);
 
-  // 🔹 PUT update
+  // 🔹 Salvataggio modifiche
   const handleSave = () => {
     if (!selectedUser) return;
 
+    // Validazione base
+    if (!selectedUser.firstName || !selectedUser.lastName || !selectedUser.email) {
+      alert("Compila tutti i campi!");
+      return;
+    }
+
     fetch(`http://localhost:8080/api/employees/${selectedUser.id}`, {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(selectedUser),
     })
       .then((res) => res.json())
@@ -38,12 +52,15 @@ function UserList() {
       .catch((err) => console.error("Errore update:", err));
   };
 
+  if (loading) return <p>Caricamento...</p>;
+  if (error) return <p>{error}</p>;
+
   return (
-    <div>
+    <div className="container mt-4">
       <h2>Lista utenti</h2>
 
-      <table border={1}>
-        <thead>
+      <table className="table table-striped table-hover">
+        <thead className="table-dark">
           <tr>
             <th>ID</th>
             <th>Nome</th>
@@ -51,10 +68,13 @@ function UserList() {
             <th>Email</th>
           </tr>
         </thead>
-
         <tbody>
           {users.map((user) => (
-            <tr key={user.id} onClick={() => setSelectedUser(user)}>
+            <tr
+              key={user.id}
+              onClick={() => setSelectedUser(user)}
+              style={{ cursor: "pointer" }}
+            >
               <td>{user.id}</td>
               <td>{user.firstName}</td>
               <td>{user.lastName}</td>
@@ -64,42 +84,71 @@ function UserList() {
         </tbody>
       </table>
 
-      {/* 🔹 MODAL */}
+      {/* MODAL */}
       {selectedUser && (
         <div className="modal show d-block" tabIndex={-1}>
           <div className="modal-dialog">
             <div className="modal-content">
-              <div className="modal-header">
+
+              <div className="modal-header bg-primary text-white">
                 <h5 className="modal-title">Modifica utente</h5>
-                <button className="btn-close" onClick={() => setSelectedUser(null)}></button>
+                <button
+                  type="button"
+                  className="btn-close"
+                  onClick={() => setSelectedUser(null)}
+                ></button>
               </div>
+
               <div className="modal-body">
-                <input
-                  value={selectedUser.firstName || ""}
-                  onChange={(e) =>
-                    setSelectedUser({ ...selectedUser, firstName: e.target.value })
-                  }
-                  placeholder="Nome"
-                />
-                <input
-                  value={selectedUser.lastName || ""}
-                  onChange={(e) =>
-                    setSelectedUser({ ...selectedUser, lastName: e.target.value })
-                  }
-                  placeholder="Cognome"
-                />
-                <input
-                  value={selectedUser.email || ""}
-                  onChange={(e) =>
-                    setSelectedUser({ ...selectedUser, email: e.target.value })
-                  }
-                  placeholder="Email"
-                />
+                <div className="mb-2">
+                  <label className="form-label">Nome</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={selectedUser.firstName || ""}
+                    onChange={(e) =>
+                      setSelectedUser({ ...selectedUser, firstName: e.target.value })
+                    }
+                  />
+                </div>
+
+                <div className="mb-2">
+                  <label className="form-label">Cognome</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={selectedUser.lastName || ""}
+                    onChange={(e) =>
+                      setSelectedUser({ ...selectedUser, lastName: e.target.value })
+                    }
+                  />
+                </div>
+
+                <div className="mb-2">
+                  <label className="form-label">Email</label>
+                  <input
+                    type="email"
+                    className="form-control"
+                    value={selectedUser.email || ""}
+                    onChange={(e) =>
+                      setSelectedUser({ ...selectedUser, email: e.target.value })
+                    }
+                  />
+                </div>
               </div>
+
               <div className="modal-footer">
-                <button onClick={() => setSelectedUser(null)}>Annulla</button>
-                <button onClick={handleSave}>Salva</button>
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => setSelectedUser(null)}
+                >
+                  Annulla
+                </button>
+                <button className="btn btn-primary" onClick={handleSave}>
+                  Salva
+                </button>
               </div>
+
             </div>
           </div>
         </div>
