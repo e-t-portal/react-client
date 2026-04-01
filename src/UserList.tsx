@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
+import 'bootstrap-icons/font/bootstrap-icons.css';
+import { OverlayTrigger, Tooltip } from "react-bootstrap"; //
+
 
 type User = {
   id: number;
@@ -15,7 +18,6 @@ function UserList() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // 🔹 GET utenti
   const fetchUsers = () => {
     fetch("http://localhost:8080/api/employees")
       .then((res) => res.json())
@@ -32,7 +34,6 @@ function UserList() {
 
   useEffect(() => { fetchUsers(); }, []);
 
-  // 🔹 PUT update
   const handleSave = () => {
     if (!selectedUser) return;
     if (!selectedUser.firstName || !selectedUser.lastName || !selectedUser.email) {
@@ -53,7 +54,6 @@ function UserList() {
       .catch((err) => console.error("Errore update:", err));
   };
 
-  // 🔹 DELETE utente
   const handleDelete = (id: number) => {
     if (!window.confirm("Sei sicuro di voler eliminare questo utente?")) return;
 
@@ -62,7 +62,6 @@ function UserList() {
       .catch((err) => console.error("Errore delete:", err));
   };
 
-  // 🔹 POST nuovo utente
   const handleAdd = () => {
     if (!newUser.firstName || !newUser.lastName || !newUser.email) {
       alert("Compila tutti i campi!");
@@ -85,11 +84,16 @@ function UserList() {
   if (loading) return <p>Caricamento...</p>;
   if (error) return <p>{error}</p>;
 
+  // 🔹 Helper tooltip
+  const renderTooltip = (text: string) => (
+    <Tooltip id="button-tooltip">{text}</Tooltip>
+  );
+
   return (
     <div className="container mt-4">
       <h2>Lista utenti</h2>
 
-      {/* 🔹 Form nuovo utente */}
+      {/* Form nuovo utente */}
       <div className="mb-3 p-3 border rounded">
         <h5>Aggiungi nuovo utente</h5>
         <div className="row g-2">
@@ -121,13 +125,20 @@ function UserList() {
             />
           </div>
           <div className="col-auto">
-            <button className="btn btn-success" onClick={handleAdd}>Aggiungi</button>
+            <OverlayTrigger
+              placement="top"
+              overlay={renderTooltip("Aggiungi utente")}
+            >
+              <button className="btn btn-success">
+                <i className="bi bi-plus-lg"></i>
+              </button>
+            </OverlayTrigger>
           </div>
         </div>
       </div>
 
-      {/* 🔹 Tabella */}
-      <table className="table table-striped table-hover">
+      {/* Tabella */}
+      <table className="table table-striped table-hover text-start">
         <thead className="table-dark">
           <tr>
             <th>ID</th>
@@ -145,19 +156,34 @@ function UserList() {
               <td>{user.lastName}</td>
               <td>{user.email}</td>
               <td>
-                <button className="btn btn-primary btn-sm me-1" onClick={() => setSelectedUser(user)}>
-                  Modifica
-                </button>
-                <button className="btn btn-danger btn-sm" onClick={() => handleDelete(user.id)}>
-                  Elimina
-                </button>
+                <OverlayTrigger
+                  placement="top"
+                  overlay={renderTooltip("Modifica")}
+                >
+                  <i
+                    className="bi bi-pencil-square text-primary me-2"
+                    style={{ cursor: "pointer" }}
+                    onClick={() => setSelectedUser(user)}
+                  ></i>
+                </OverlayTrigger>
+
+                <OverlayTrigger
+                  placement="top"
+                  overlay={renderTooltip("Elimina")}
+                >
+                  <i
+                    className="bi bi-trash text-danger"
+                    style={{ cursor: "pointer" }}
+                    onClick={() => handleDelete(user.id)}
+                  ></i>
+                </OverlayTrigger>
               </td>
             </tr>
           ))}
         </tbody>
       </table>
 
-      {/* 🔹 Modal modifica */}
+      {/* Modal modifica */}
       {selectedUser && (
         <div className="modal show d-block" tabIndex={-1}>
           <div className="modal-dialog">
