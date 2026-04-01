@@ -32,7 +32,6 @@ function UserList() {
   const [search, setSearch] = useState("");
   const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
 
-  // Fetch utenti dal backend
   const fetchUsers = () => {
     fetch("http://localhost:8080/api/employees")
       .then(res => res.json())
@@ -70,6 +69,7 @@ function UserList() {
         if (isNew) setUsers([...users, user]);
         else setUsers(users.map(u => u.id === user.id ? user : u));
         setSelectedUser(null);
+        setSearch(""); // reset filtro dopo aggiunta/modifica
         addToast("success", isNew ? "Utente aggiunto con successo!" : "Utente modificato con successo!");
       })
       .catch(err => { console.error(err); addToast("error", "Errore durante il salvataggio!"); });
@@ -120,29 +120,33 @@ function UserList() {
   return (
     <div className="container mt-4">
 
-      {/* Header con icona + */}
-      <div className="d-flex align-items-center mb-3">
-        <h2 className="text-start mb-0">Lista utenti</h2>
-        <OverlayTrigger placement="top" overlay={renderTooltip("Aggiungi nuovo utente")}>
-          <i
-            className="bi bi-person-plus-fill fs-2.5 text-success ms-2"
-            style={{ cursor: "pointer", transition: "all 0.3s" }}
-            onClick={() => { setSelectedUser({ firstName: "", lastName: "", email: "" }); setIsNew(true); }}
-            onMouseOver={e => { e.currentTarget.style.transform = "scale(1.3)"; e.currentTarget.style.textShadow = "0 0 8px #28a745"; }}
-            onMouseOut={e => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.textShadow = "none"; }}
-          ></i>
-        </OverlayTrigger>
-      </div>
+      {/* Header con icona + e barra di ricerca */}
+      <div className="d-flex justify-content-between align-items-center mb-3">
+        <div className="d-flex align-items-center">
+          <h2 className="text-start mb-0">Lista utenti</h2>
+          <OverlayTrigger placement="top" overlay={renderTooltip("Aggiungi nuovo utente")}>
+            <i
+              className="bi bi-person-plus-fill fs-2.5 text-success ms-2"
+              style={{ cursor: "pointer", transition: "all 0.3s" }}
+              onClick={() => { setSelectedUser({ firstName: "", lastName: "", email: "" }); setIsNew(true); }}
+              onMouseOver={e => { e.currentTarget.style.transform = "scale(1.3)"; e.currentTarget.style.textShadow = "0 0 8px #28a745"; }}
+              onMouseOut={e => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.textShadow = "none"; }}
+            ></i>
+          </OverlayTrigger>
+        </div>
 
-      {/* Barra di ricerca */}
-      <div className="mb-3">
-        <input
-          type="text"
-          className="form-control"
-          placeholder="Cerca per nome, cognome o email..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+        <div className="input-group" style={{ maxWidth: "300px" }}>
+          <span className="input-group-text bg-white border-end-0">
+            <i className="bi bi-search"></i>
+          </span>
+          <input
+            type="text"
+            className="form-control border-start-0"
+            placeholder="Cerca..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
       </div>
 
       {/* Tabella */}
