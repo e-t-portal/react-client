@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
-import { OverlayTrigger, Tooltip, Toast, ToastContainer } from "react-bootstrap";
+import { OverlayTrigger, Tooltip, Toast } from "react-bootstrap";
 
 type User = {
   id?: number;
@@ -32,11 +32,12 @@ function UserList() {
   const [search, setSearch] = useState("");
   const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
 
+  // Fetch utenti dal backend
   const fetchUsers = () => {
     fetch("http://localhost:8080/api/employees")
       .then(res => res.json())
       .then((data: User[]) => { setUsers(data); setLoading(false); })
-      .catch(err => { console.error("Errore:", err); setError("Impossibile caricare utenti"); setLoading(false); });
+      .catch(err => { console.error(err); setError("Impossibile caricare utenti"); setLoading(false); });
   };
 
   useEffect(() => { fetchUsers(); }, []);
@@ -252,17 +253,32 @@ function UserList() {
         </div>
       )}
 
-      {/* Toast container */}
-      <ToastContainer position="top-end" className="p-3">
+      {/* Toast centrale */}
+      <div
+        style={{
+          position: "fixed",
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+          zIndex: 1050,
+          minWidth: "250px"
+        }}
+      >
         {toasts.map(t => (
-          <Toast key={t.id} bg={t.type === "success" ? "success" : "danger"} autohide delay={3000}>
-            <Toast.Body className="d-flex align-items-center text-white">
-              <i className={`bi ${t.type === "success" ? "bi-check-circle-fill" : "bi-x-circle-fill"} me-2 fs-5`}></i>
+          <Toast
+            key={t.id}
+            bg="light"
+            autohide
+            delay={2000}
+            className="shadow border border-secondary mb-2"
+          >
+            <Toast.Body className="d-flex align-items-center justify-content-center text-dark fw-semibold">
+              <i className={`bi ${t.type === "success" ? "bi-check-circle-fill text-success" : "bi-x-circle-fill text-danger"} me-2 fs-5`}></i>
               {t.text}
             </Toast.Body>
           </Toast>
         ))}
-      </ToastContainer>
+      </div>
 
     </div>
   );
