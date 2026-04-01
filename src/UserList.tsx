@@ -16,6 +16,11 @@ type ToastMessage = {
   text: string;
 };
 
+type SortConfig = {
+  key: keyof User;
+  direction: "asc" | "desc";
+};
+
 function UserList() {
   const [users, setUsers] = useState<User[]>([]);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -23,7 +28,9 @@ function UserList() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
-  const [userToDelete, setUserToDelete] = useState<User | null>(null); // nuovo stato per conferma
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  const [search, setSearch] = useState("");
+  const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
 
   const fetchUsers = () => {
     fetch("http://localhost:8080/api/employees")
@@ -80,15 +87,39 @@ function UserList() {
       .catch(err => { console.error(err); addToast("error", "Errore durante l'eliminazione!"); setUserToDelete(null); });
   };
 
+  const renderTooltip = (text: string) => (<Tooltip>{text}</Tooltip>);
+
+  const requestSort = (key: keyof User) => {
+    let direction: "asc" | "desc" = "asc";
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === "asc") {
+      direction = "desc";
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const filteredUsers = users
+    .filter(u =>
+      u.firstName.toLowerCase().includes(search.toLowerCase()) ||
+      u.lastName.toLowerCase().includes(search.toLowerCase()) ||
+      u.email.toLowerCase().includes(search.toLowerCase())
+    )
+    .sort((a, b) => {
+      if (!sortConfig) return 0;
+      const { key, direction } = sortConfig;
+      const aVal = (a[key] ?? "").toString().toLowerCase();
+      const bVal = (b[key] ?? "").toString().toLowerCase();
+      if (aVal < bVal) return direction === "asc" ? -1 : 1;
+      if (aVal > bVal) return direction === "asc" ? 1 : -1;
+      return 0;
+    });
+
   if (loading) return <p>Caricamento...</p>;
   if (error) return <p>{error}</p>;
-
-  const renderTooltip = (text: string) => (<Tooltip>{text}</Tooltip>);
 
   return (
     <div className="container mt-4">
 
-      {/* Header con icona + animata */}
+      {/* Header con icona + */}
       <div className="d-flex align-items-center mb-3">
         <h2 className="text-start mb-0">Lista utenti</h2>
         <OverlayTrigger placement="top" overlay={renderTooltip("Aggiungi nuovo utente")}>
@@ -102,20 +133,39 @@ function UserList() {
         </OverlayTrigger>
       </div>
 
+      {/* Barra di ricerca */}
+      <div className="mb-3">
+        <input
+          type="text"
+          className="form-control"
+          placeholder="Cerca per nome, cognome o email..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </div>
+
       {/* Tabella */}
       <div className="table-responsive shadow-sm">
         <table className="table table-hover text-start align-middle mb-0">
           <thead className="table-dark text-start">
             <tr>
-              <th>ID</th>
-              <th>Nome</th>
-              <th>Cognome</th>
-              <th>Email</th>
+              <th style={{ cursor: "pointer" }} onClick={() => requestSort("id")}>
+                ID {sortConfig?.key === "id" ? (sortConfig.direction === "asc" ? "↑" : "↓") : ""}
+              </th>
+              <th style={{ cursor: "pointer" }} onClick={() => requestSort("firstName")}>
+                Nome {sortConfig?.key === "firstName" ? (sortConfig.direction === "asc" ? "↑" : "↓") : ""}
+              </th>
+              <th style={{ cursor: "pointer" }} onClick={() => requestSort("lastName")}>
+                Cognome {sortConfig?.key === "lastName" ? (sortConfig.direction === "asc" ? "↑" : "↓") : ""}
+              </th>
+              <th style={{ cursor: "pointer" }} onClick={() => requestSort("email")}>
+                Email {sortConfig?.key === "email" ? (sortConfig.direction === "asc" ? "↑" : "↓") : ""}
+              </th>
               <th>Azioni</th>
             </tr>
           </thead>
           <tbody>
-            {users.map(user => (
+            {filteredUsers.map(user => (
               <tr key={user.id}>
                 <td>{user.id}</td>
                 <td>{user.firstName}</td>
