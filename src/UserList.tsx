@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
-import { OverlayTrigger, Tooltip } from "react-bootstrap";
+import { OverlayTrigger, Tooltip, Toast, ToastContainer } from "react-bootstrap";
 
 type User = {
   id?: number;
@@ -10,12 +10,19 @@ type User = {
   email: string;
 };
 
+type ToastMessage = {
+  id: number;
+  type: "success" | "error";
+  text: string;
+};
+
 function UserList() {
   const [users, setUsers] = useState<User[]>([]);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isNew, setIsNew] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
   const fetchUsers = () => {
     fetch("http://localhost:8080/api/employees")
@@ -32,6 +39,12 @@ function UserList() {
   };
 
   useEffect(() => { fetchUsers(); }, []);
+
+  const addToast = (type: "success" | "error", text: string) => {
+    const id = Date.now();
+    setToasts(prev => [...prev, { id, type, text }]);
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3000);
+  };
 
   const handleSave = () => {
     if (!selectedUser) return;
@@ -50,8 +63,12 @@ function UserList() {
         .then((createdUser: User) => {
           setUsers([...users, createdUser]);
           setSelectedUser(null);
+          addToast("success", "Utente aggiunto con successo!");
         })
-        .catch(err => console.error("Errore create:", err));
+        .catch(err => {
+          console.error("Errore create:", err);
+          addToast("error", "Errore durante l'aggiunta!");
+        });
     } else {
       fetch(`http://localhost:8080/api/employees/${selectedUser.id}`, {
         method: "PUT",
@@ -62,8 +79,12 @@ function UserList() {
         .then((updatedUser: User) => {
           setUsers(users.map(u => u.id === updatedUser.id ? updatedUser : u));
           setSelectedUser(null);
+          addToast("success", "Utente modificato con successo!");
         })
-        .catch(err => console.error("Errore update:", err));
+        .catch(err => {
+          console.error("Errore update:", err);
+          addToast("error", "Errore durante la modifica!");
+        });
     }
   };
 
@@ -72,8 +93,14 @@ function UserList() {
     if (!window.confirm("Sei sicuro di voler eliminare questo utente?")) return;
 
     fetch(`http://localhost:8080/api/employees/${id}`, { method: "DELETE" })
-      .then(() => setUsers(users.filter(u => u.id !== id)))
-      .catch(err => console.error("Errore delete:", err));
+      .then(() => {
+        setUsers(users.filter(u => u.id !== id));
+        addToast("success", "Utente eliminato con successo!");
+      })
+      .catch(err => {
+        console.error("Errore delete:", err);
+        addToast("error", "Errore durante l'eliminazione!");
+      });
   };
 
   if (loading) return <p>Caricamento...</p>;
@@ -84,60 +111,70 @@ function UserList() {
   return (
     <div className="container mt-4">
 
-      {/* Header: titolo + icona più visibile */}
+      {/* Header */}
       <div className="d-flex align-items-center mb-3">
         <h2 className="text-start mb-0">Lista utenti</h2>
         <OverlayTrigger placement="top" overlay={renderTooltip("Aggiungi nuovo utente")}>
-          <i className="bi bi-person-plus fs-3 text-success ms-3" style={{ cursor: "pointer", transition: "transform 0.2s" }}
+          <i className="bi bi-person-plus-fill fs-3 text-success ms-3"
+             style={{ cursor: "pointer", transition: "all 0.2s" }}
              onClick={() => { setSelectedUser({ firstName: "", lastName: "", email: "" }); setIsNew(true); }}
-             onMouseOver={e => (e.currentTarget.style.transform = "scale(1.2)")}
-             onMouseOut={e => (e.currentTarget.style.transform = "scale(1)")}>
+             onMouseOver={e => { e.currentTarget.style.transform = "scale(1.2)"; e.currentTarget.style.filter = "drop-shadow(0 0 5px #28a745)"; }}
+             onMouseOut={e => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.filter = "none"; }}>
           </i>
         </OverlayTrigger>
       </div>
 
       {/* Tabella */}
-      <table className="table table-striped table-hover text-start table-responsive">
-        <thead className="table-dark text-start">
-          <tr>
-            <th>ID</th>
-            <th>Nome</th>
-            <th>Cognome</th>
-            <th>Email</th>
-            <th>Azioni</th>
-          </tr>
-        </thead>
-        <tbody>
-          {users.map(user => (
-            <tr key={user.id}>
-              <td>{user.id}</td>
-              <td>{user.firstName}</td>
-              <td>{user.lastName}</td>
-              <td>{user.email}</td>
-              <td>
-                <OverlayTrigger placement="top" overlay={renderTooltip("Modifica")}>
-                  <i className="bi bi-pencil-square text-primary me-2" style={{ cursor: "pointer" }}
-                     onClick={() => { setSelectedUser(user); setIsNew(false); }}></i>
-                </OverlayTrigger>
-
-                <OverlayTrigger placement="top" overlay={renderTooltip("Elimina")}>
-                  <i className="bi bi-trash text-danger" style={{ cursor: "pointer" }}
-                     onClick={() => handleDelete(user.id)}></i>
-                </OverlayTrigger>
-              </td>
+      <div className="table-responsive shadow-sm">
+        <table className="table table-hover text-start align-middle mb-0">
+          <thead className="table-dark text-start">
+            <tr>
+              <th>ID</th>
+              <th>Nome</th>
+              <th>Cognome</th>
+              <th>Email</th>
+              <th>Azioni</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {users.map(user => (
+              <tr key={user.id}>
+                <td>{user.id}</td>
+                <td>{user.firstName}</td>
+                <td>{user.lastName}</td>
+                <td>{user.email}</td>
+                <td>
+                  <OverlayTrigger placement="top" overlay={renderTooltip("Modifica")}>
+                    <i className="bi bi-pencil-square text-primary me-2"
+                       style={{ cursor: "pointer", transition: "all 0.2s" }}
+                       onMouseOver={e => e.currentTarget.style.transform = "scale(1.2)"}
+                       onMouseOut={e => e.currentTarget.style.transform = "scale(1)"}
+                       onClick={() => { setSelectedUser(user); setIsNew(false); }}></i>
+                  </OverlayTrigger>
+
+                  <OverlayTrigger placement="top" overlay={renderTooltip("Elimina")}>
+                    <i className="bi bi-trash text-danger"
+                       style={{ cursor: "pointer", transition: "all 0.2s" }}
+                       onMouseOver={e => e.currentTarget.style.transform = "scale(1.2)"}
+                       onMouseOut={e => e.currentTarget.style.transform = "scale(1)"}
+                       onClick={() => handleDelete(user.id)}></i>
+                  </OverlayTrigger>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       {/* Modal centralizzato */}
       {selectedUser && (
         <div className="modal show d-block text-start" tabIndex={-1}>
           <div className="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-            <div className="modal-content text-start shadow">
+            <div className="modal-content text-start shadow-lg">
               <div className="modal-header bg-primary text-white text-start">
                 <h5 className="modal-title">{isNew ? "Aggiungi utente" : "Modifica utente"}</h5>
-                <button type="button" className="btn-close btn-close-white" onClick={() => setSelectedUser(null)}></button>
+                <button type="button" className="btn-close btn-close-white"
+                        onClick={() => setSelectedUser(null)}></button>
               </div>
               <div className="modal-body text-start">
                 <div className="mb-3">
@@ -166,6 +203,15 @@ function UserList() {
           </div>
         </div>
       )}
+
+      {/* Toast container */}
+      <ToastContainer position="top-end" className="p-3">
+        {toasts.map(t => (
+          <Toast key={t.id} bg={t.type === "success" ? "success" : "danger"} autohide delay={3000}>
+            <Toast.Body className="text-white">{t.text}</Toast.Body>
+          </Toast>
+        ))}
+      </ToastContainer>
 
     </div>
   );
