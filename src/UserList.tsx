@@ -9,13 +9,34 @@ type User = {
 
 function UserList() {
   const [users, setUsers] = useState<User[]>([]);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
+  // 🔹 GET utenti
   useEffect(() => {
     fetch("http://localhost:8080/api/employees")
       .then((res) => res.json())
       .then((data: User[]) => setUsers(data))
       .catch((err) => console.error("Errore:", err));
   }, []);
+
+  // 🔹 PUT update
+  const handleSave = () => {
+    if (!selectedUser) return;
+
+    fetch(`http://localhost:8080/api/employees/${selectedUser.id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(selectedUser),
+    })
+      .then((res) => res.json())
+      .then((updatedUser: User) => {
+        setUsers(users.map((u) => (u.id === updatedUser.id ? updatedUser : u)));
+        setSelectedUser(null);
+      })
+      .catch((err) => console.error("Errore update:", err));
+  };
 
   return (
     <div>
@@ -33,7 +54,7 @@ function UserList() {
 
         <tbody>
           {users.map((user) => (
-            <tr key={user.id}>
+            <tr key={user.id} onClick={() => setSelectedUser(user)}>
               <td>{user.id}</td>
               <td>{user.firstName}</td>
               <td>{user.lastName}</td>
@@ -42,6 +63,47 @@ function UserList() {
           ))}
         </tbody>
       </table>
+
+      {/* 🔹 MODAL */}
+      {selectedUser && (
+        <div className="modal show d-block" tabIndex={-1}>
+          <div className="modal-dialog">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">Modifica utente</h5>
+                <button className="btn-close" onClick={() => setSelectedUser(null)}></button>
+              </div>
+              <div className="modal-body">
+                <input
+                  value={selectedUser.firstName || ""}
+                  onChange={(e) =>
+                    setSelectedUser({ ...selectedUser, firstName: e.target.value })
+                  }
+                  placeholder="Nome"
+                />
+                <input
+                  value={selectedUser.lastName || ""}
+                  onChange={(e) =>
+                    setSelectedUser({ ...selectedUser, lastName: e.target.value })
+                  }
+                  placeholder="Cognome"
+                />
+                <input
+                  value={selectedUser.email || ""}
+                  onChange={(e) =>
+                    setSelectedUser({ ...selectedUser, email: e.target.value })
+                  }
+                  placeholder="Email"
+                />
+              </div>
+              <div className="modal-footer">
+                <button onClick={() => setSelectedUser(null)}>Annulla</button>
+                <button onClick={handleSave}>Salva</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
